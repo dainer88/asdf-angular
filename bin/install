@@ -113,6 +113,10 @@ elif [[ -f "${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/
 fi
 
 if [[ -n "${ng_path}" ]]; then
+
+  if [ -d "${install_path}/bin" ]; then
+    rm -rf "${install_path}/bin"
+  fi
   # Create the bin directory if it doesn't exist
   mkdir -p "${install_path}/bin"
   
