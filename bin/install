@@ -63,7 +63,7 @@ fi
 
 case "$installer" in
   pnpm)
-    install_cmd=(pnpm --global-dir "${install_path}" install "@angular/cli@${version}")
+    install_cmd=(pnpm install "@angular/cli@${version}" --dir "${install_path}")
     ;;
   npm)
     install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
@@ -98,13 +98,12 @@ fi
 # Locate the 'ng' binary in common locations and create a stable link
 if [[ -x "${install_path}/bin/ng" ]]; then
   chmod +x "${install_path}/bin/ng" || true
-  ln -sf "${install_path}/bin/ng" "${install_path}/ng"
 elif [[ -f "${install_path}/lib/node_modules/@angular/cli/bin/ng" ]]; then
-  ln -sf "${install_path}/lib/node_modules/@angular/cli/bin/ng" "${install_path}/ng"
-  chmod +x "${install_path}/ng" || true
+  ln -sf "${install_path}/lib/node_modules/@angular/cli/bin/ng" "${install_path}/bin/ng"
+  chmod +x "${install_path}/bin/ng" || true
 elif [[ -f "${install_path}/node_modules/.bin/ng" ]]; then
-  ln -sf "${install_path}/node_modules/.bin/ng" "${install_path}/ng"
-  chmod +x "${install_path}/ng" || true
+  ln -sf "${install_path}/node_modules/.bin/ng" "${install_path}/bin/ng"
+  chmod +x "${install_path}/bin/ng" || true
 else
   echo "Could not locate ng binary after install." >&2
   exit 1
