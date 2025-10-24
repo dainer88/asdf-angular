@@ -80,7 +80,7 @@ mkdir -p "${install_path}"
 cd "${install_path}"
 
 # Run the installer. If it fails and we used pnpm, attempt an npm fallback.
-if ! pnpm add -g "@angular/cli@${version}" --prefix "${install_path}" >/dev/null 2>&1; then
+if ! pnpm add -g "@angular/cli@${version}" --global-dir "${install_path}" >/dev/null 2>&1; then
   echo "Installation with ${installer} failed." >&2
   if [[ "${installer}" != "npm" ]] && command -v npm >/dev/null 2>&1; then
     echo "Falling back to npm..."
