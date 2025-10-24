@@ -116,23 +116,53 @@ if [[ -n "${ng_path}" ]]; then
   # Create the bin directory if it doesn't exist
   mkdir -p "${install_path}/bin"
   
-  # Create a wrapper script
+  # Create a wrapper script that reliably resolves the JS entrypoint
   cat > "${install_path}/bin/ng" << EOF
 #!/usr/bin/env node
-
-// Find the real ng.js module
-const ngPath = '${ng_path}';
+// This wrapper attempts to resolve the real JS entrypoint for @angular/cli
+// using Node's module resolution anchored at the install path. This avoids
+// accidentally requiring a shell shim (which causes a syntax error in Node).
 const fs = require('fs');
 
-if (!fs.existsSync(ngPath)) {
-  console.error(\`Could not find Angular CLI at: \${ngPath}\`);
+function tryResolve() {
+  const candidates = [
+    '${install_path}/lib/node_modules',
+    '${install_path}/node_modules',
+    '${install_path}/.pnpm/node_modules',
+    '${install_path}/.pnpm/@angular+cli@${version}/node_modules'
+  ];
+
+  for (const base of candidates) {
+    try {
+      const resolved = require.resolve('@angular/cli/bin/ng', { paths: [base] });
+      if (fs.existsSync(resolved)) return resolved;
+    } catch (e) {
+      // ignore and continue
+    }
+  }
+
+  // Fallback to several common JS file locations
+  const fallback = [
+    '${install_path}/lib/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js'
+  ];
+  for (const f of fallback) {
+    if (fs.existsSync(f)) return f;
+  }
+  return null;
+}
+
+const ngPath = tryResolve();
+if (!ngPath) {
+  console.error('Could not resolve @angular/cli binary (ng) from install path.');
   process.exit(1);
 }
 
-// Load and run the CLI
 require(ngPath);
 EOF
-  
+
   chmod +x "${install_path}/bin/ng"
 else
   echo "Could not locate ng binary after install." >&2
