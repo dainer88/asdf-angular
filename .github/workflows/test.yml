@@ -36,4 +36,4 @@ jobs:
         run: |
           mkdir -p /tmp/asdf-angular-cli
           bash bin/install 18.2.1 /tmp/asdf-angular-cli
-          /tmp/asdf-angular-cli/ng version
+          /tmp/asdf-angular-cli/bin/ng version
