@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec "$ASDF_INSTALL_PATH/ng" "$@"

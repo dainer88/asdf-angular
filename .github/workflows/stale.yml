@@ -1,0 +1,17 @@
+name: Close stale issues and PRs
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # weekly on Monday
+  workflow_dispatch:
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close stale issues and PRs
+        uses: actions/stale@v4
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          days-before-stale: 30
+          days-before-close: 7

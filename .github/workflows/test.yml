@@ -1,0 +1,39 @@
+name: Test asdf-angular-cli plugin
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Run weekly to show activity and catch regressions
+    - cron: '0 3 * * 1'
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq npm
+          else
+            sudo apt-get update && sudo apt-get install -y jq npm
+          fi
+
+      - name: Shell script syntax check
+        run: |
+          bash -n bin/install bin/list-all bin/exec
+
+      - name: Test version listing
+        run: bash bin/list-all | head -n 5
+
+      - name: Test Angular CLI installation
+        run: |
+          mkdir -p /tmp/asdf-angular-cli
+          bash bin/install 18.2.1 /tmp/asdf-angular-cli
+          /tmp/asdf-angular-cli/ng version

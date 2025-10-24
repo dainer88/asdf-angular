@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+version="$1"
+install_path="$2"
+
+# Prefer pnpm if available, otherwise fall back to npm
+installer=""
+install_cmd=()
+
+if command -v pnpm >/dev/null 2>&1; then
+  installer="pnpm"
+  install_cmd=(pnpm add -g "@angular/cli@${version}" --prefix "${install_path}")
+elif command -v npm >/dev/null 2>&1; then
+  installer="npm"
+  install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
+else
+  echo "pnpm or npm is required but neither is installed." >&2
+  exit 1
+fi
+
+echo "Installing @angular/cli version ${version} using ${installer}..."
+
+mkdir -p "${install_path}"
+cd "${install_path}"
+
+# Run the installer. If it fails and we used pnpm, attempt an npm fallback.
+if ! "${install_cmd[@]}" >/dev/null 2>&1; then
+  echo "Installation with ${installer} failed." >&2
+  if [[ "${installer}" != "npm" ]] && command -v npm >/dev/null 2>&1; then
+    echo "Falling back to npm..."
+    if ! npm install -g "@angular/cli@${version}" --prefix "${install_path}" >/dev/null 2>&1; then
+      echo "npm fallback also failed." >&2
+      exit 1
+    else
+      installer="npm"
+    fi
+  else
+    exit 1
+  fi
+fi
+
+# Locate the 'ng' binary in common locations and create a stable link
+if [[ -x "${install_path}/bin/ng" ]]; then
+  chmod +x "${install_path}/bin/ng" || true
+  ln -sf "${install_path}/bin/ng" "${install_path}/ng"
+elif [[ -f "${install_path}/lib/node_modules/@angular/cli/bin/ng" ]]; then
+  ln -sf "${install_path}/lib/node_modules/@angular/cli/bin/ng" "${install_path}/ng"
+  chmod +x "${install_path}/ng" || true
+elif [[ -f "${install_path}/node_modules/.bin/ng" ]]; then
+  ln -sf "${install_path}/node_modules/.bin/ng" "${install_path}/ng"
+  chmod +x "${install_path}/ng" || true
+else
+  echo "Could not locate ng binary after install." >&2
+  exit 1
+fi
+
+echo "✅ Angular CLI ${version} installed at ${install_path} (using ${installer})"
