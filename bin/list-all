@@ -1,12 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Check for required commands
-command -v jq >/dev/null 2>&1 || { echo >&2 "jq is required but is not installed."; exit 1; }
-command -v curl >/dev/null 2>&1 || { echo >&2 "curl is required but is not installed."; exit 1; }
+# Ensure common locations are in PATH (helps non-interactive shells / CI)
+PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
-# List all stable versions of @angular/cli available from npm
-curl -s https://registry.npmjs.org/@angular/cli \
-  | jq -r '.versions | keys[]' \
-  | grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+$' \
-  | sort -Vr
+# Optional debug output when ASDF_ANGULAR_DEBUG=1
+if [[ "${ASDF_ANGULAR_DEBUG:-0}" == "1" ]]; then
+  echo "[debug] PATH=$PATH" >&2
+fi
+
+# Find jq and curl (try PATH first, then common locations)
+jq_bin="$(command -v jq 2>/dev/null || true)"
+curl_bin="$(command -v curl 2>/dev/null || true)"
+for p in /opt/homebrew/bin/jq /usr/local/bin/jq /usr/bin/jq /bin/jq; do
+  if [[ -z "$jq_bin" && -x "$p" ]]; then jq_bin="$p"; break; fi
+done
+for p in /opt/homebrew/bin/curl /usr/local/bin/curl /usr/bin/curl /bin/curl; do
+  if [[ -z "$curl_bin" && -x "$p" ]]; then curl_bin="$p"; break; fi
+done
+
+if [[ -z "$jq_bin" ]]; then
+  echo >&2 "jq is required but not installed or not found in PATH. Tried: PATH and common locations."
+  exit 1
+fi
+if [[ -z "$curl_bin" ]]; then
+  echo >&2 "curl is required but not installed or not found in PATH. Tried: PATH and common locations."
+  exit 1
+fi
+
+# List all versions of @angular/cli available from npm registry
+"$curl_bin" -s https://registry.npmjs.org/@angular/cli \
+  | "$jq_bin" -r '.versions | keys[]' \
+  | sort -V
