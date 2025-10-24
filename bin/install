@@ -119,7 +119,18 @@ if [[ -n "${ng_path}" ]]; then
   # Create a wrapper script
   cat > "${install_path}/bin/ng" << EOF
 #!/usr/bin/env node
-require('${ng_path}');
+
+// Find the real ng.js module
+const ngPath = '${ng_path}';
+const fs = require('fs');
+
+if (!fs.existsSync(ngPath)) {
+  console.error(\`Could not find Angular CLI at: \${ngPath}\`);
+  process.exit(1);
+}
+
+// Load and run the CLI
+require(ngPath);
 EOF
   
   chmod +x "${install_path}/bin/ng"
