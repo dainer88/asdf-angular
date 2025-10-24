@@ -76,7 +76,7 @@ esac
 
 echo "Installing @angular/cli version ${version} using ${installer}..."
 
-mkdir -p "${install_path}"
+mkdir -p "${install_path}/bin"
 cd "${install_path}"
 
 # Run the installer. If it fails and we used pnpm, attempt an npm fallback.
