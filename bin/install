@@ -96,14 +96,33 @@ if ! "${install_cmd[@]}" >/dev/null 2>&1; then
 fi
 
 # Locate the 'ng' binary in common locations and create a stable link
+# First try to find the ng executable
+ng_path=""
 if [[ -x "${install_path}/bin/ng" ]]; then
-  chmod +x "${install_path}/bin/ng" || true
+  ng_path="${install_path}/bin/ng"
 elif [[ -f "${install_path}/lib/node_modules/@angular/cli/bin/ng" ]]; then
-  ln -sf "${install_path}/lib/node_modules/@angular/cli/bin/ng" "${install_path}/bin/ng"
-  chmod +x "${install_path}/bin/ng" || true
+  ng_path="${install_path}/lib/node_modules/@angular/cli/bin/ng"
 elif [[ -f "${install_path}/node_modules/.bin/ng" ]]; then
-  ln -sf "${install_path}/node_modules/.bin/ng" "${install_path}/bin/ng"
-  chmod +x "${install_path}/bin/ng" || true
+  ng_path="${install_path}/node_modules/.bin/ng"
+elif [[ -f "${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js" ]]; then
+  # pnpm specific path
+  ng_path="${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js"
+elif [[ -f "${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js" ]]; then
+  # alternative pnpm path with version
+  ng_path="${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js"
+fi
+
+if [[ -n "${ng_path}" ]]; then
+  # Create the bin directory if it doesn't exist
+  mkdir -p "${install_path}/bin"
+  
+  # Create a wrapper script
+  cat > "${install_path}/bin/ng" << EOF
+#!/usr/bin/env node
+require('${ng_path}');
+EOF
+  
+  chmod +x "${install_path}/bin/ng"
 else
   echo "Could not locate ng binary after install." >&2
   exit 1
