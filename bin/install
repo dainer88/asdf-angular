@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Accept version and install path from positional args or asdf environment variables.
+# Use safe parameter expansion to avoid "unbound variable" errors when run without args.
+version="${1:-${ASDF_INSTALL_VERSION:-}}"
+install_path="${2:-${ASDF_INSTALL_PATH:-${ASDF_INSTALL_PREFIX:-}}}"
 
-version="$1"
-install_path="$2"
+# Validate inputs early and provide a helpful error if missing.
+if [[ -z "${version}" || -z "${install_path}" ]]; then
+  echo "Usage: install <version> <install_path>" >&2
+  echo "Or set ASDF_INSTALL_VERSION and ASDF_INSTALL_PATH environment variables." >&2
+  exit 1
+fi
 
 # Determine available installers
 pnpm_available=false
