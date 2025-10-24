@@ -8,7 +8,7 @@ An asdf plugin to manage multiple versions of the Angular CLI ([Angular CLI docu
 ## 🚀 Installation
 
 ```bash
-asdf plugin-add angular-cli https://github.com/dainer88/asdf-angular-cli.git
+asdf plugin add angular-cli https://github.com/dainer88/asdf-angular-cli.git
 ```
 
 ## 📦 Usage
