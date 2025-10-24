@@ -1,23 +1,70 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+
 version="$1"
 install_path="$2"
 
-# Prefer pnpm if available, otherwise fall back to npm
-installer=""
-install_cmd=()
-
+# Determine available installers
+pnpm_available=false
+npm_available=false
 if command -v pnpm >/dev/null 2>&1; then
-  installer="pnpm"
-  install_cmd=(pnpm add -g "@angular/cli@${version}" --prefix "${install_path}")
-elif command -v npm >/dev/null 2>&1; then
-  installer="npm"
-  install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
-else
+  pnpm_available=true
+fi
+if command -v npm >/dev/null 2>&1; then
+  npm_available=true
+fi
+
+if ! $pnpm_available && ! $npm_available; then
   echo "pnpm or npm is required but neither is installed." >&2
   exit 1
 fi
+
+# Allow override with environment variable ASDF_ANGULAR_INSTALLER (pnpm|npm)
+# If both are available and running interactively, prompt the user to choose.
+installer=""
+install_cmd=()
+if $pnpm_available && $npm_available; then
+  # honor explicit env var if set
+  if [[ -n "${ASDF_ANGULAR_INSTALLER:-}" ]]; then
+    case "${ASDF_ANGULAR_INSTALLER}" in
+      pnpm) installer="pnpm" ;;
+      npm) installer="npm" ;;
+      *) echo "Invalid ASDF_ANGULAR_INSTALLER value: ${ASDF_ANGULAR_INSTALLER}. Use 'pnpm' or 'npm'." >&2; exit 1 ;;
+    esac
+  else
+    # If running in a TTY, ask the user; otherwise default to pnpm
+    if [[ -t 0 && -t 1 ]]; then
+      echo "Both pnpm and npm are available. Which package manager would you like to use?"
+      read -r -p "Choose installer [pnpm/npm] (default: pnpm): " choice
+      choice=${choice:-pnpm}
+      case "$choice" in
+        pnpm) installer="pnpm" ;;
+        npm) installer="npm" ;;
+        *) echo "Invalid choice: $choice" >&2; exit 1 ;;
+      esac
+    else
+      installer="pnpm"
+    fi
+  fi
+elif $pnpm_available; then
+  installer="pnpm"
+else
+  installer="npm"
+fi
+
+case "$installer" in
+  pnpm)
+    install_cmd=(pnpm add -g "@angular/cli@${version}" --prefix "${install_path}")
+    ;;
+  npm)
+    install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
+    ;;
+  *)
+    echo "Unexpected installer: $installer" >&2
+    exit 1
+    ;;
+esac
 
 echo "Installing @angular/cli version ${version} using ${installer}..."
 
