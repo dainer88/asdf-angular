@@ -63,7 +63,7 @@ fi
 
 case "$installer" in
   pnpm)
-    install_cmd=(pnpm add -g "@angular/cli@${version}" --dir "${install_path}")
+    install_cmd=(pnpm --global-dir "${install_path}" add "@angular/cli@${version}")
     ;;
   npm)
     install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
