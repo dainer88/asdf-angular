@@ -8,7 +8,7 @@ on:
     - cron: '0 3 * * 1'
 
 jobs:
-  test:
+  test-npm:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -25,15 +25,39 @@ jobs:
             sudo apt-get update && sudo apt-get install -y jq npm
           fi
 
-      - name: Shell script syntax check
-        run: |
-          bash -n bin/install bin/list-all bin/exec
+      - name: Install asdf
+       uses: asdf-vm/actions/setup@v4
 
-      - name: Test version listing
-        run: bash bin/list-all | head -n 5
+      - name: Install asdf-angular-cli
+        uses: asdf-vm/actions/plugins-add@v4
+      
+      - uses: asdf-vm/actions/plugin-test@v4
+        with:
+          command: ng --version
+  
+  test-pnpm:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Test Angular CLI installation
+      - name: Install dependencies
         run: |
-          mkdir -p /tmp/asdf-angular-cli
-          bash bin/install 18.2.1 /tmp/asdf-angular-cli
-          /tmp/asdf-angular-cli/bin/ng version
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq pnpm
+          else
+            sudo apt-get update && sudo apt-get install -y jq pnpm
+          fi
+
+      - name: Install asdf
+       uses: asdf-vm/actions/setup@v4
+
+      - name: Install asdf-angular-cli
+        uses: asdf-vm/actions/plugins-add@v4
+      
+      - uses: asdf-vm/actions/plugin-test@v4
+        with:
+          command: ng --version
