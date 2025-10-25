@@ -32,26 +32,14 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
 
-      - name: Install dependencies
-        run: |
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install jq pnpm
-          else
-            sudo apt-get update && sudo apt-get install -y jq pnpm
-          fi
-
-      - name: Install asdf
-        uses: asdf-vm/actions/setup@v4
-
-      - name: Install asdf-angular-cli
-        uses: asdf-vm/actions/plugins-add@v4
+      - uses: pnpm/action-setup@v4
         with:
-          tool_versions: angular-cli
-      
+          version: 10
+
       - name: Test asdf-angular-cli
         uses: asdf-vm/actions/plugin-test@v4
         with:
+          gitref: master
+          version: 18.2.1
           command: ng --version
