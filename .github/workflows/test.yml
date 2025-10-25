@@ -31,7 +31,7 @@ jobs:
       - name: Install asdf-angular-cli
         uses: asdf-vm/actions/plugins-add@v4
         with:
-          tool_versions: 18.2.1
+          tool_versions: angular-cli
       
       - name: Test asdf-angular-cli
         uses: asdf-vm/actions/plugin-test@v4
@@ -61,7 +61,7 @@ jobs:
       - name: Install asdf-angular-cli
         uses: asdf-vm/actions/plugins-add@v4
         with:
-          tool_versions: 18.2.1
+          tool_versions: angular-cli
       
       - name: Test asdf-angular-cli
         uses: asdf-vm/actions/plugin-test@v4
