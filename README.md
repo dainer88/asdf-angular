@@ -41,7 +41,7 @@ ng version
 
 - jq
 - curl
-- npm
+- npm or pnpm
 
 ## 🧩 Contributing
 
