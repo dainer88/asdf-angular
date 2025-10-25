@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-download() {
-   local install_type="$1" version="$2" install_path="$3"
+install_angular_cli() {
+  local install_type="$1" version="$2" install_path="$3"
 
   # Validate inputs early and provide a helpful error if missing.
   if [[ -z "${version}" || -z "${install_path}" ]]; then
@@ -119,51 +119,51 @@ download() {
     mkdir -p "${install_path}/bin"
     
     # Create a wrapper script that reliably resolves the JS entrypoint
-    cat > "${install_path}/bin/ng" << "
-      #!/usr/bin/env node
-      // This wrapper attempts to resolve the real JS entrypoint for @angular/cli
-      // using Node's module resolution anchored at the install path. This avoids
-      // accidentally requiring a shell shim (which causes a syntax error in Node).
-      const fs = require('fs');
+    cat > "${install_path}/bin/ng" << EOF
+#!/usr/bin/env node
+// This wrapper attempts to resolve the real JS entrypoint for @angular/cli
+// using Node's module resolution anchored at the install path. This avoids
+// accidentally requiring a shell shim (which causes a syntax error in Node).
+const fs = require('fs');
 
-      function tryResolve() {
-        const candidates = [
-          '${install_path}/lib/node_modules',
-          '${install_path}/node_modules',
-          '${install_path}/.pnpm/node_modules',
-          '${install_path}/.pnpm/@angular+cli@${version}/node_modules'
-        ];
+function tryResolve() {
+  const candidates = [
+    '${install_path}/lib/node_modules',
+    '${install_path}/node_modules',
+    '${install_path}/.pnpm/node_modules',
+    '${install_path}/.pnpm/@angular+cli@${version}/node_modules'
+  ];
 
-        for (const base of candidates) {
-          try {
-            const resolved = require.resolve('@angular/cli/bin/ng', { paths: [base] });
-            if (fs.existsSync(resolved)) return resolved;
-          } catch (e) {
-            // ignore and continue
-          }
-        }
+  for (const base of candidates) {
+    try {
+      const resolved = require.resolve('@angular/cli/bin/ng', { paths: [base] });
+      if (fs.existsSync(resolved)) return resolved;
+    } catch (e) {
+      // ignore and continue
+    }
+  }
 
-        // Fallback to several common JS file locations
-        const fallback = [
-          '${install_path}/lib/node_modules/@angular/cli/bin/ng.js',
-          '${install_path}/node_modules/@angular/cli/bin/ng.js',
-          '${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js',
-          '${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js'
-        ];
-        for (const f of fallback) {
-          if (fs.existsSync(f)) return f;
-        }
-        return null;
-      }
+  // Fallback to several common JS file locations
+  const fallback = [
+    '${install_path}/lib/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js',
+    '${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js'
+  ];
+  for (const f of fallback) {
+    if (fs.existsSync(f)) return f;
+  }
+  return null;
+}
 
-      const ngPath = tryResolve();
-      if (!ngPath) {
-        console.error('Could not resolve @angular/cli binary (ng) from install path.');
-        process.exit(1);
-      }
+const ngPath = tryResolve();
+if (!ngPath) {
+  console.error('Could not resolve @angular/cli binary (ng) from install path.');
+  process.exit(1);
+}
 
-      require(ngPath);
-    "
+require(ngPath);
+EOF
 
     chmod +x "${install_path}/bin/ng"
   else
@@ -174,4 +174,4 @@ download() {
   echo "✅ Angular CLI ${version} installed at ${install_path} (using ${installer})"
 }
 echo "Installing Angular CLI..."
-download $ASDF_INSTALL_TYPE "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
+install_angular_cli "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
