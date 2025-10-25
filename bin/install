@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-install_angular_cli() {
+download() {
    local install_type="$1" version="$2" install_path="$3"
 
   # Validate inputs early and provide a helpful error if missing.
@@ -174,4 +174,4 @@ install_angular_cli() {
   echo "✅ Angular CLI ${version} installed at ${install_path} (using ${installer})"
 }
 echo "Installing Angular CLI..."
-install_angular_cli $ASDF_INSTALL_TYPE "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
+download $ASDF_INSTALL_TYPE "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
