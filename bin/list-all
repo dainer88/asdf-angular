@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+echo "tetst"
 # Ensure common locations are in PATH (helps non-interactive shells / CI)
 PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
