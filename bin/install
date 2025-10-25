@@ -1,176 +1,177 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Accept version and install path from positional args or asdf environment variables.
-# Use safe parameter expansion to avoid "unbound variable" errors when run without args.
-version="${1:-${ASDF_INSTALL_VERSION:-}}"
-install_path="${2:-${ASDF_INSTALL_PATH:-${ASDF_INSTALL_PREFIX:-}}}"
+install_angular_cli() {
+   local install_type="$1" version="$2" install_path="$3"
 
-# Validate inputs early and provide a helpful error if missing.
-if [[ -z "${version}" || -z "${install_path}" ]]; then
-  echo "Usage: install <version> <install_path>" >&2
-  echo "Or set ASDF_INSTALL_VERSION and ASDF_INSTALL_PATH environment variables." >&2
-  exit 1
-fi
+  # Validate inputs early and provide a helpful error if missing.
+  if [[ -z "${version}" || -z "${install_path}" ]]; then
+    echo "Usage: install <version> <install_path>" >&2
+    echo "Or set ASDF_INSTALL_VERSION and ASDF_INSTALL_PATH environment variables." >&2
+    exit 1
+  fi
 
-# Determine available installers
-pnpm_available=false
-npm_available=false
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm_available=true
-fi
-if command -v npm >/dev/null 2>&1; then
-  npm_available=true
-fi
+  # Determine available installers
+  pnpm_available=false
+  npm_available=false
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm_available=true
+  fi
+  if command -v npm >/dev/null 2>&1; then
+    npm_available=true
+  fi
 
-if ! $pnpm_available && ! $npm_available; then
-  echo "pnpm or npm is required but neither is installed." >&2
-  exit 1
-fi
+  if ! $pnpm_available && ! $npm_available; then
+    echo "pnpm or npm is required but neither is installed." >&2
+    exit 1
+  fi
 
-# Allow override with environment variable ASDF_ANGULAR_INSTALLER (pnpm|npm)
-# If both are available and running interactively, prompt the user to choose.
-installer=""
-install_cmd=()
-if $pnpm_available && $npm_available; then
-  # honor explicit env var if set
-  if [[ -n "${ASDF_ANGULAR_INSTALLER:-}" ]]; then
-    case "${ASDF_ANGULAR_INSTALLER}" in
-      pnpm) installer="pnpm" ;;
-      npm) installer="npm" ;;
-      *) echo "Invalid ASDF_ANGULAR_INSTALLER value: ${ASDF_ANGULAR_INSTALLER}. Use 'pnpm' or 'npm'." >&2; exit 1 ;;
-    esac
-  else
-    # If running in a TTY, ask the user; otherwise default to pnpm
-    if [[ -t 0 && -t 1 ]]; then
-      echo "Both pnpm and npm are available. Which package manager would you like to use?"
-      read -r -p "Choose installer [pnpm/npm] (default: pnpm): " choice
-      choice=${choice:-pnpm}
-      case "$choice" in
+  # Allow override with environment variable ASDF_ANGULAR_INSTALLER (pnpm|npm)
+  # If both are available and running interactively, prompt the user to choose.
+  installer=""
+  install_cmd=()
+  if $pnpm_available && $npm_available; then
+    # honor explicit env var if set
+    if [[ -n "${ASDF_ANGULAR_INSTALLER:-}" ]]; then
+      case "${ASDF_ANGULAR_INSTALLER}" in
         pnpm) installer="pnpm" ;;
         npm) installer="npm" ;;
-        *) echo "Invalid choice: $choice" >&2; exit 1 ;;
+        *) echo "Invalid ASDF_ANGULAR_INSTALLER value: ${ASDF_ANGULAR_INSTALLER}. Use 'pnpm' or 'npm'." >&2; exit 1 ;;
       esac
     else
-      installer="pnpm"
+      # If running in a TTY, ask the user; otherwise default to pnpm
+      if [[ -t 0 && -t 1 ]]; then
+        echo "Both pnpm and npm are available. Which package manager would you like to use?"
+        read -r -p "Choose installer [pnpm/npm] (default: pnpm): " choice
+        choice=${choice:-pnpm}
+        case "$choice" in
+          pnpm) installer="pnpm" ;;
+          npm) installer="npm" ;;
+          *) echo "Invalid choice: $choice" >&2; exit 1 ;;
+        esac
+      else
+        installer="pnpm"
+      fi
     fi
-  fi
-elif $pnpm_available; then
-  installer="pnpm"
-else
-  installer="npm"
-fi
-
-case "$installer" in
-  pnpm)
-    install_cmd=(pnpm install "@angular/cli@${version}" --dir "${install_path}")
-    ;;
-  npm)
-    install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
-    ;;
-  *)
-    echo "Unexpected installer: $installer" >&2
-    exit 1
-    ;;
-esac
-
-echo "Installing @angular/cli version ${version} using ${installer}..."
-
-mkdir -p "${install_path}/bin"
-cd "${install_path}"
-
-# Run the installer. If it fails and we used pnpm, attempt an npm fallback.
-if ! "${install_cmd[@]}" >/dev/null 2>&1; then
-  echo "Installation with ${installer} failed." >&2
-  if [[ "${installer}" != "npm" ]] && command -v npm >/dev/null 2>&1; then
-    echo "Falling back to npm..."
-    if ! npm install -g "@angular/cli@${version}" --prefix "${install_path}" >/dev/null 2>&1; then
-      echo "npm fallback also failed." >&2
-      exit 1
-    else
-      installer="npm"
-    fi
+  elif $pnpm_available; then
+    installer="pnpm"
   else
+    installer="npm"
+  fi
+
+  case "$installer" in
+    pnpm)
+      install_cmd=(pnpm install "@angular/cli@${version}" --dir "${install_path}")
+      ;;
+    npm)
+      install_cmd=(npm install -g "@angular/cli@${version}" --prefix "${install_path}")
+      ;;
+    *)
+      echo "Unexpected installer: $installer" >&2
+      exit 1
+      ;;
+  esac
+
+  echo "Installing @angular/cli version ${version} using ${installer}..."
+
+  mkdir -p "${install_path}/bin"
+  cd "${install_path}"
+
+  # Run the installer. If it fails and we used pnpm, attempt an npm fallback.
+  if ! "${install_cmd[@]}" >/dev/null 2>&1; then
+    echo "Installation with ${installer} failed." >&2
+    if [[ "${installer}" != "npm" ]] && command -v npm >/dev/null 2>&1; then
+      echo "Falling back to npm..."
+      if ! npm install -g "@angular/cli@${version}" --prefix "${install_path}" >/dev/null 2>&1; then
+        echo "npm fallback also failed." >&2
+        exit 1
+      else
+        installer="npm"
+      fi
+    else
+      exit 1
+    fi
+  fi
+
+  # Locate the 'ng' binary in common locations and create a stable link
+  # First try to find the ng executable
+  ng_path=""
+  if [[ -x "${install_path}/bin/ng" ]]; then
+    ng_path="${install_path}/bin/ng"
+  elif [[ -f "${install_path}/lib/node_modules/@angular/cli/bin/ng" ]]; then
+    ng_path="${install_path}/lib/node_modules/@angular/cli/bin/ng"
+  elif [[ -f "${install_path}/node_modules/.bin/ng" ]]; then
+    ng_path="${install_path}/node_modules/.bin/ng"
+  elif [[ -f "${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js" ]]; then
+    # pnpm specific path
+    ng_path="${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js"
+  elif [[ -f "${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js" ]]; then
+    # alternative pnpm path with version
+    ng_path="${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js"
+  fi
+
+  if [[ -n "${ng_path}" ]]; then
+
+    if [ -d "${install_path}/bin" ]; then
+      rm -rf "${install_path}/bin"
+    fi
+    # Create the bin directory if it doesn't exist
+    mkdir -p "${install_path}/bin"
+    
+    # Create a wrapper script that reliably resolves the JS entrypoint
+    cat > "${install_path}/bin/ng" << "
+      #!/usr/bin/env node
+      // This wrapper attempts to resolve the real JS entrypoint for @angular/cli
+      // using Node's module resolution anchored at the install path. This avoids
+      // accidentally requiring a shell shim (which causes a syntax error in Node).
+      const fs = require('fs');
+
+      function tryResolve() {
+        const candidates = [
+          '${install_path}/lib/node_modules',
+          '${install_path}/node_modules',
+          '${install_path}/.pnpm/node_modules',
+          '${install_path}/.pnpm/@angular+cli@${version}/node_modules'
+        ];
+
+        for (const base of candidates) {
+          try {
+            const resolved = require.resolve('@angular/cli/bin/ng', { paths: [base] });
+            if (fs.existsSync(resolved)) return resolved;
+          } catch (e) {
+            // ignore and continue
+          }
+        }
+
+        // Fallback to several common JS file locations
+        const fallback = [
+          '${install_path}/lib/node_modules/@angular/cli/bin/ng.js',
+          '${install_path}/node_modules/@angular/cli/bin/ng.js',
+          '${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js',
+          '${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js'
+        ];
+        for (const f of fallback) {
+          if (fs.existsSync(f)) return f;
+        }
+        return null;
+      }
+
+      const ngPath = tryResolve();
+      if (!ngPath) {
+        console.error('Could not resolve @angular/cli binary (ng) from install path.');
+        process.exit(1);
+      }
+
+      require(ngPath);
+    "
+
+    chmod +x "${install_path}/bin/ng"
+  else
+    echo "Could not locate ng binary after install." >&2
     exit 1
   fi
-fi
 
-# Locate the 'ng' binary in common locations and create a stable link
-# First try to find the ng executable
-ng_path=""
-if [[ -x "${install_path}/bin/ng" ]]; then
-  ng_path="${install_path}/bin/ng"
-elif [[ -f "${install_path}/lib/node_modules/@angular/cli/bin/ng" ]]; then
-  ng_path="${install_path}/lib/node_modules/@angular/cli/bin/ng"
-elif [[ -f "${install_path}/node_modules/.bin/ng" ]]; then
-  ng_path="${install_path}/node_modules/.bin/ng"
-elif [[ -f "${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js" ]]; then
-  # pnpm specific path
-  ng_path="${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js"
-elif [[ -f "${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js" ]]; then
-  # alternative pnpm path with version
-  ng_path="${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js"
-fi
-
-if [[ -n "${ng_path}" ]]; then
-
-  if [ -d "${install_path}/bin" ]; then
-    rm -rf "${install_path}/bin"
-  fi
-  # Create the bin directory if it doesn't exist
-  mkdir -p "${install_path}/bin"
-  
-  # Create a wrapper script that reliably resolves the JS entrypoint
-  cat > "${install_path}/bin/ng" << EOF
-#!/usr/bin/env node
-// This wrapper attempts to resolve the real JS entrypoint for @angular/cli
-// using Node's module resolution anchored at the install path. This avoids
-// accidentally requiring a shell shim (which causes a syntax error in Node).
-const fs = require('fs');
-
-function tryResolve() {
-  const candidates = [
-    '${install_path}/lib/node_modules',
-    '${install_path}/node_modules',
-    '${install_path}/.pnpm/node_modules',
-    '${install_path}/.pnpm/@angular+cli@${version}/node_modules'
-  ];
-
-  for (const base of candidates) {
-    try {
-      const resolved = require.resolve('@angular/cli/bin/ng', { paths: [base] });
-      if (fs.existsSync(resolved)) return resolved;
-    } catch (e) {
-      // ignore and continue
-    }
-  }
-
-  // Fallback to several common JS file locations
-  const fallback = [
-    '${install_path}/lib/node_modules/@angular/cli/bin/ng.js',
-    '${install_path}/node_modules/@angular/cli/bin/ng.js',
-    '${install_path}/.pnpm/node_modules/@angular/cli/bin/ng.js',
-    '${install_path}/.pnpm/@angular+cli@${version}/node_modules/@angular/cli/bin/ng.js'
-  ];
-  for (const f of fallback) {
-    if (fs.existsSync(f)) return f;
-  }
-  return null;
+  echo "✅ Angular CLI ${version} installed at ${install_path} (using ${installer})"
 }
-
-const ngPath = tryResolve();
-if (!ngPath) {
-  console.error('Could not resolve @angular/cli binary (ng) from install path.');
-  process.exit(1);
-}
-
-require(ngPath);
-EOF
-
-  chmod +x "${install_path}/bin/ng"
-else
-  echo "Could not locate ng binary after install." >&2
-  exit 1
-fi
-
-echo "✅ Angular CLI ${version} installed at ${install_path} (using ${installer})"
+echo "Installing Angular CLI..."
+install_angular_cli $ASDF_INSTALL_TYPE "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"

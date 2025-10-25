@@ -29,6 +29,7 @@ if [[ -z "$curl_bin" ]]; then
 fi
 
 # List all versions of @angular/cli available from npm registry
-"$curl_bin" -s https://registry.npmjs.org/@angular/cli \
+echo $("$curl_bin" -s https://registry.npmjs.org/@angular/cli \
   | "$jq_bin" -r '.versions | keys[]' \
-  | sort -V
+  | grep -E '^[0-9.]+$'
+  | sort -V)
